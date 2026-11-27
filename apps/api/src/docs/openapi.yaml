@@ -1,0 +1,2026 @@
+openapi: 3.0.3
+info:
+  title: Galon Delivery API
+  version: 1.0.0
+  description: |
+    API pemesanan & pengiriman air galon. Semua respons memakai envelope
+    `{ success, data, meta? }` atau `{ success: false, error: { code, message, details? } }`.
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    Search: { name: search, in: query, schema: { type: string } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            message: { type: string }
+            details: {}
+  responses:
+    Ok: { description: Berhasil, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: {}, meta: { type: object } } } } } }
+    Error: { description: Gagal, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: "Registrasi customer"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: "Login (email/nomor HP)"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: "Rotasi refresh token"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: "Logout (cabut refresh token)"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/logout-all:
+    post:
+      tags: [auth]
+      summary: "Logout semua perangkat"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: "Kirim email reset password"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/reset-password:
+    post:
+      tags: [auth]
+      summary: "Reset password dengan token"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/change-password:
+    post:
+      tags: [auth]
+      summary: "Ganti password"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: "Profil akun saat ini"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /users:
+    get:
+      tags: [users]
+      summary: "Daftar pengguna"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [users]
+      summary: "Buat pengguna (admin/kurir/customer)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /users/{id}:
+    get:
+      tags: [users]
+      summary: "Detail pengguna"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [users]
+      summary: "Ubah pengguna"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [users]
+      summary: "Hapus (soft delete)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /users/{id}/status:
+    patch:
+      tags: [users]
+      summary: "Ubah status pengguna"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /profiles/me:
+    get:
+      tags: [profiles]
+      summary: "Profil lengkap"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [profiles]
+      summary: "Ubah profil"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /profiles/me/avatar:
+    post:
+      tags: [profiles]
+      summary: "Unggah avatar"
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /profiles/courier/location:
+    patch:
+      tags: [profiles]
+      summary: "Update lokasi kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /profiles/courier/status:
+    patch:
+      tags: [profiles]
+      summary: "Update status kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /profiles/couriers:
+    get:
+      tags: [profiles]
+      summary: "Daftar kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /addresses:
+    get:
+      tags: [addresses]
+      summary: "Daftar alamat"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [addresses]
+      summary: "Tambah alamat"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /addresses/{id}:
+    get:
+      tags: [addresses]
+      summary: "Detail alamat"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [addresses]
+      summary: "Ubah alamat"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [addresses]
+      summary: "Hapus alamat"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /addresses/{id}/default:
+    patch:
+      tags: [addresses]
+      summary: "Jadikan alamat utama"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /delivery-zones:
+    get:
+      tags: [delivery-zones]
+      summary: "Daftar zona"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [delivery-zones]
+      summary: "Buat zona"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /delivery-zones/{id}:
+    get:
+      tags: [delivery-zones]
+      summary: "Detail zona"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [delivery-zones]
+      summary: "Ubah zona"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [delivery-zones]
+      summary: "Hapus zona"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /delivery-slots:
+    get:
+      tags: [delivery-slots]
+      summary: "Daftar slot"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [delivery-slots]
+      summary: "Buat slot"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /delivery-slots/{id}:
+    get:
+      tags: [delivery-slots]
+      summary: "Detail slot"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [delivery-slots]
+      summary: "Ubah slot"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [delivery-slots]
+      summary: "Hapus slot"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /categories:
+    get:
+      tags: [categories]
+      summary: "Daftar kategori"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [categories]
+      summary: "Buat kategori"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /categories/image:
+    post:
+      tags: [categories]
+      summary: "Unggah gambar kategori"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /categories/{id}:
+    get:
+      tags: [categories]
+      summary: "Detail kategori"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [categories]
+      summary: "Ubah kategori"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [categories]
+      summary: "Hapus kategori"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /brands:
+    get:
+      tags: [brands]
+      summary: "Daftar brand"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [brands]
+      summary: "Buat brand"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /brands/image:
+    post:
+      tags: [brands]
+      summary: "Unggah logo brand"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /brands/{id}:
+    get:
+      tags: [brands]
+      summary: "Detail brand"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [brands]
+      summary: "Ubah brand"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [brands]
+      summary: "Hapus brand"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products:
+    get:
+      tags: [products]
+      summary: "Katalog produk (filter, sort, pagination)"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [products]
+      summary: "Buat produk (+stok awal, gambar, tier)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{idOrSlug}:
+    get:
+      tags: [products]
+      summary: "Detail produk"
+      parameters:
+        - { name: idOrSlug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{id}:
+    patch:
+      tags: [products]
+      summary: "Ubah produk"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [products]
+      summary: "Hapus produk (soft delete)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{productId}/images:
+    get:
+      tags: [product-images]
+      summary: "Daftar gambar"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [product-images]
+      summary: "Tambah gambar (file/url)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{productId}/images/{imageId}:
+    patch:
+      tags: [product-images]
+      summary: "Ubah gambar"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+        - { name: imageId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [product-images]
+      summary: "Hapus gambar"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+        - { name: imageId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{productId}/price-tiers:
+    get:
+      tags: [product-price-tiers]
+      summary: "Daftar harga grosir"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [product-price-tiers]
+      summary: "Tambah tier"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [product-price-tiers]
+      summary: "Ganti seluruh tier"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /products/{productId}/price-tiers/{tierId}:
+    patch:
+      tags: [product-price-tiers]
+      summary: "Ubah tier"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+        - { name: tierId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [product-price-tiers]
+      summary: "Hapus tier"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+        - { name: tierId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /stocks:
+    get:
+      tags: [stocks]
+      summary: "Daftar stok (lowStock)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /stocks/{productId}:
+    get:
+      tags: [stocks]
+      summary: "Stok produk"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [stocks]
+      summary: "Ubah minStock"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /stock-movements:
+    get:
+      tags: [stock-movements]
+      summary: "Riwayat pergerakan stok"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [stock-movements]
+      summary: "Catat IN/OUT/ADJUSTMENT/RETURN"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /carts:
+    get:
+      tags: [carts]
+      summary: "Isi keranjang"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [carts]
+      summary: "Kosongkan keranjang"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /carts/items:
+    post:
+      tags: [carts]
+      summary: "Tambah item"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /carts/items/{productId}:
+    patch:
+      tags: [carts]
+      summary: "Ubah qty (0 = hapus)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [carts]
+      summary: "Hapus item"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: productId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /vouchers:
+    get:
+      tags: [vouchers]
+      summary: "Daftar voucher"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [vouchers]
+      summary: "Buat voucher"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /vouchers/available:
+    get:
+      tags: [vouchers]
+      summary: "Voucher yang bisa dipakai"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /vouchers/validate:
+    post:
+      tags: [vouchers]
+      summary: "Cek voucher & diskon"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /vouchers/{id}:
+    get:
+      tags: [vouchers]
+      summary: "Detail voucher"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [vouchers]
+      summary: "Ubah voucher"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [vouchers]
+      summary: "Hapus/nonaktifkan voucher"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders:
+    post:
+      tags: [orders]
+      summary: "Checkout (dari keranjang atau items)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [orders]
+      summary: "Daftar pesanan (sesuai role)"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: "Detail pesanan"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders/{id}/cancel:
+    post:
+      tags: [orders]
+      summary: "Batalkan pesanan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders/{id}/confirm-received:
+    post:
+      tags: [orders]
+      summary: "Konfirmasi diterima"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders/{id}/status:
+    patch:
+      tags: [orders]
+      summary: "Ubah status (PROCESSING/READY/COMPLETED)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /orders/{id}/admin-note:
+    patch:
+      tags: [orders]
+      summary: "Catatan admin"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payments:
+    post:
+      tags: [payments]
+      summary: "Buat pembayaran (COD/manual/gateway)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [payments]
+      summary: "Daftar pembayaran"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payments/{id}:
+    get:
+      tags: [payments]
+      summary: "Detail pembayaran"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payments/{id}/proof:
+    post:
+      tags: [payments]
+      summary: "Unggah bukti transfer"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payments/{id}/cancel:
+    post:
+      tags: [payments]
+      summary: "Batalkan pembayaran"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payments/{id}/verify:
+    post:
+      tags: [payments]
+      summary: "Verifikasi transfer manual"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/midtrans:
+    post:
+      tags: [payment-webhooks]
+      summary: "Callback Midtrans"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/xendit:
+    post:
+      tags: [payment-webhooks]
+      summary: "Callback Xendit"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/doku:
+    post:
+      tags: [payment-webhooks]
+      summary: "Callback DOKU"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/duitku:
+    post:
+      tags: [payment-webhooks]
+      summary: "Callback Duitku"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/logs:
+    get:
+      tags: [payment-webhooks]
+      summary: "Log webhook"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/logs/{id}:
+    get:
+      tags: [payment-webhooks]
+      summary: "Detail log webhook"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /payment-webhooks/logs/{id}/reprocess:
+    post:
+      tags: [payment-webhooks]
+      summary: "Proses ulang log"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /refunds:
+    post:
+      tags: [refunds]
+      summary: "Ajukan refund"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [refunds]
+      summary: "Daftar refund"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /refunds/{id}:
+    get:
+      tags: [refunds]
+      summary: "Detail refund"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /refunds/{id}/approve:
+    post:
+      tags: [refunds]
+      summary: "Setujui refund"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /refunds/{id}/reject:
+    post:
+      tags: [refunds]
+      summary: "Tolak refund"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /refunds/{id}/process:
+    post:
+      tags: [refunds]
+      summary: "Tandai refund selesai dibayarkan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries:
+    get:
+      tags: [deliveries]
+      summary: "Daftar pengiriman"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN/COURIER"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}:
+    get:
+      tags: [deliveries]
+      summary: "Detail pengiriman"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN/COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/order/{orderId}/tracking:
+    get:
+      tags: [deliveries]
+      summary: "Pelacakan pesanan"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: orderId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/order/{orderId}/assign:
+    post:
+      tags: [deliveries]
+      summary: "Tugaskan kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: orderId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/order/{orderId}/auto-assign:
+    post:
+      tags: [deliveries]
+      summary: "Tugaskan kurir otomatis"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: orderId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/accept:
+    post:
+      tags: [deliveries]
+      summary: "Terima tugas"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/reject:
+    post:
+      tags: [deliveries]
+      summary: "Tolak tugas"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/pickup:
+    post:
+      tags: [deliveries]
+      summary: "Barang diambil"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/on-the-way:
+    post:
+      tags: [deliveries]
+      summary: "Dalam perjalanan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/arrived:
+    post:
+      tags: [deliveries]
+      summary: "Tiba di lokasi"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/tracking:
+    post:
+      tags: [deliveries]
+      summary: "Kirim titik lokasi"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/deliver:
+    post:
+      tags: [deliveries]
+      summary: "Selesai diantar (multipart proofPhoto)"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /deliveries/{id}/fail:
+    post:
+      tags: [deliveries]
+      summary: "Pengiriman gagal"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: COURIER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /courier-zones:
+    get:
+      tags: [courier-zones]
+      summary: "Daftar relasi kurir-zona"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [courier-zones]
+      summary: "Tambah relasi"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /courier-zones/courier/{courierId}:
+    put:
+      tags: [courier-zones]
+      summary: "Ganti seluruh zona kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: courierId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /courier-zones/{courierId}/{zoneId}:
+    delete:
+      tags: [courier-zones]
+      summary: "Hapus relasi"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: courierId, in: path, required: true, schema: { type: string } }
+        - { name: zoneId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /gallon-movements:
+    get:
+      tags: [gallon-movements]
+      summary: "Riwayat galon"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /gallon-movements/balance:
+    get:
+      tags: [gallon-movements]
+      summary: "Saldo galon & deposit"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /gallon-movements/balance/{userId}:
+    get:
+      tags: [gallon-movements]
+      summary: "Saldo customer"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /gallon-movements/deposit-refund:
+    post:
+      tags: [gallon-movements]
+      summary: "Kembalikan deposit"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /subscriptions:
+    get:
+      tags: [subscriptions]
+      summary: "Daftar langganan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [subscriptions]
+      summary: "Buat langganan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /subscriptions/{id}:
+    get:
+      tags: [subscriptions]
+      summary: "Detail langganan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [subscriptions]
+      summary: "Ubah langganan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /subscriptions/{id}/pause:
+    post:
+      tags: [subscriptions]
+      summary: "Jeda"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /subscriptions/{id}/resume:
+    post:
+      tags: [subscriptions]
+      summary: "Lanjutkan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /subscriptions/{id}/cancel:
+    post:
+      tags: [subscriptions]
+      summary: "Batalkan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reviews:
+    get:
+      tags: [reviews]
+      summary: "Daftar ulasan"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [reviews]
+      summary: "Beri ulasan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reviews/mine:
+    get:
+      tags: [reviews]
+      summary: "Ulasan saya"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reviews/{id}:
+    patch:
+      tags: [reviews]
+      summary: "Ubah ulasan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [reviews]
+      summary: "Hapus ulasan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: CUSTOMER/ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reviews/{id}/visibility:
+    patch:
+      tags: [reviews]
+      summary: "Moderasi ulasan"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: "Daftar notifikasi"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications/unread-count:
+    get:
+      tags: [notifications]
+      summary: "Jumlah belum dibaca"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications/read-all:
+    patch:
+      tags: [notifications]
+      summary: "Tandai semua dibaca"
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications/broadcast:
+    post:
+      tags: [notifications]
+      summary: "Kirim notifikasi massal"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications/{id}/read:
+    patch:
+      tags: [notifications]
+      summary: "Tandai dibaca"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /notifications/{id}:
+    delete:
+      tags: [notifications]
+      summary: "Hapus notifikasi"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /banners:
+    get:
+      tags: [banners]
+      summary: "Daftar banner"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [banners]
+      summary: "Buat banner"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /banners/active:
+    get:
+      tags: [banners]
+      summary: "Banner yang sedang tayang"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /banners/image:
+    post:
+      tags: [banners]
+      summary: "Unggah gambar banner"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /banners/{id}:
+    get:
+      tags: [banners]
+      summary: "Detail banner"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [banners]
+      summary: "Ubah banner"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [banners]
+      summary: "Hapus banner"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /settings/public:
+    get:
+      tags: [settings]
+      summary: "Setting publik"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /settings:
+    get:
+      tags: [settings]
+      summary: "Semua setting"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /settings/{key}:
+    get:
+      tags: [settings]
+      summary: "Detail setting"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [settings]
+      summary: "Buat/ubah setting"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [settings]
+      summary: "Hapus setting"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/dashboard:
+    get:
+      tags: [reports]
+      summary: "Ringkasan dashboard"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/sales:
+    get:
+      tags: [reports]
+      summary: "Penjualan per periode"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/top-products:
+    get:
+      tags: [reports]
+      summary: "Produk terlaris"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/top-customers:
+    get:
+      tags: [reports]
+      summary: "Customer teratas"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/payments:
+    get:
+      tags: [reports]
+      summary: "Rekap pembayaran"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/couriers:
+    get:
+      tags: [reports]
+      summary: "Kinerja kurir"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/stock:
+    get:
+      tags: [reports]
+      summary: "Laporan stok"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /reports/gallons:
+    get:
+      tags: [reports]
+      summary: "Galon & deposit beredar"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /audit-logs:
+    get:
+      tags: [audit-logs]
+      summary: "Daftar audit log"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Search' }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
+  /audit-logs/{id}:
+    get:
+      tags: [audit-logs]
+      summary: "Detail audit log"
+      security: [{ bearerAuth: [] }]
+      description: "Akses: ADMIN"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '4XX': { $ref: '#/components/responses/Error' }
